@@ -1,0 +1,94 @@
+
+var one = /* color: #d63000 */ee.Geometry.MultiPoint(
+        [[6.062933333, 41.74536667],
+         [2.6904, 40.59961667],
+         [-4.0355, 36.49738333],
+         [-7.149583333, 36.96298333],
+         [-9.154683333, 35.51375],
+         [-2.694416667, 35.90385],
+         [5.667333333, 38.65636667],
+         [11.75795, 37.62168333],
+         [15.68093333, 38.46181667],
+         [12.77163333, 39.1357]]),
+    two = /* color: #98ff00 */ee.Geometry.Point([10.3391, 41.68451667]),
+    five = /* color: #ffc82d */ee.Geometry.Point([8.659533333, 38.2298]);
+var dataset = ee.ImageCollection('NASA/OCEANDATA/MODIS-Aqua/L3SMI')
+                  .filterDate('2012-8-13', '2012-12-8');
+var remoteSensingReflectance =
+    dataset.select(['Rrs_645', 'Rrs_555', 'Rrs_443']);
+var remoteSensingReflectanceVis = {
+  min: 0.0,
+  max: 0.011,
+};
+Map.setCenter(-52.12, -46.13, 4);
+Map.addLayer(
+    remoteSensingReflectance, remoteSensingReflectanceVis,
+    'Remote Sensing Reflectance');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var dataset = ee.ImageCollection('NASA/OCEANDATA/MODIS-Aqua/L3SMI')
+                  .filterDate('2012-8-13', '2012-12-8');
+var remoteSensingReflectance =
+    dataset.select(['Rrs_645_median', 'Rrs_555_median', 'Rrs_443_median']);
+//var remoteSensingReflectanceVis = {
+  //min: 0.0,
+  //max: 0.011,
+//};
+var vis_param = {bands: ['Rrs_645_median', 'Rrs_555_median', 'Rrs_443_median']};
+var median = dataset.reduce(ee.Reducer.median());
+
+
+var pts = ee.FeatureCollection(ee.List([ee.Feature(two),ee.Feature(five)]));
+var ft = ee.FeatureCollection(ee.List([]));
+var fill = function(img, ini) {
+// type cast
+var inift = ee.FeatureCollection(ini);
+
+// gets the values for the points in the current img
+var ft2 = img.reduceRegions(pts, ee.Reducer.first(),30);
+// gets the date of the img
+var date = img.date().format();
+
+// writes the date in each feature
+var ft3 = ft2.map(function(f){return f.set("date", date)});
+var ft3a = ft3.filter(ee.Filter.neq('Rrs_645_median', null));//filter first to remove null values
+// merges the FeatureCollections
+return inift.merge(ft3a);
+};
+// Iterates over the ImageCollection
+var newft_remove_null = ee.FeatureCollection(dataset.iterate(fill, ft));
+print(newft_remove_null);
+Export.table.toDrive(newft_remove_null,
+"anyDescription",
+"EarthEngine",
+"sample_remove_null");
+
+
+
+
+
+Map.setCenter(-52.12, -46.13, 4);
+Map.addLayer(median, vis_param);
+Map.addLayer(pts);
